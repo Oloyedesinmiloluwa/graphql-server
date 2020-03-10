@@ -5,7 +5,8 @@ import {
 	GraphQLBoolean,
 	GraphQLID,
 	GraphQLList,
-	GraphQLInt
+	GraphQLInt,
+	GraphQLNonNull,
 } from 'graphql';
 import mongoose from 'mongoose';
 import Book from '../models/books';
@@ -17,10 +18,11 @@ const BookType = new GraphQLObjectType({
 		id: {type: GraphQLString},
 		name: {type: GraphQLString},
 		published: {type: GraphQLBoolean},
+		authorId: {type: GraphQLID},
 		author: {
 			type: AuthorType,
 			resolve(parent, args){
-				return author.find(elem => parent.id === elem.id);
+				return Author.findById(parent.authorId);
 			}
 		}
 	})
@@ -35,7 +37,7 @@ const AuthorType = new GraphQLObjectType({
 		books: {
 			type: new GraphQLList(BookType),
 			resolve(parent,args){
-				return book.filter(elem => elem.authorId == parent.id);
+				return Book.find({authorId: parent.id});
 			}
 		}
 	})
@@ -56,27 +58,27 @@ const RootQuery = new GraphQLObjectType({
 		books: {
 			type: new GraphQLList(BookType),
 			resolve(parent,args){
-				return book;
+				return Book.find();
 			}
 		},
 		book: {
 			type: BookType,
 			args: { id: { type: GraphQLString }},
 			resolve(parent, args){
-				return book.find(elem => elem.id === args.id);
+				return Book.findById(args.id);
 			}
 		},
 		authors: {
 			type: new GraphQLList(AuthorType),
 			resolve(){
-				return author;
+				return Author.find();
 			}
 		},
 		author: {
 			type: AuthorType,
 			args: { id: {type: GraphQLID }},
 			resolve(parent, args){
-				return author.find(elem => elem.id === args.id);
+				return Author.findById(args.id);
 			}
 		}
 	}
@@ -87,20 +89,32 @@ const Mutation = new GraphQLObjectType({
 		addAuthor: {
 			type: AuthorType,
 			args: {
-				id: {type: GraphQLString},
-				name: {type: GraphQLString},
-				age: {type: GraphQLInt}
+				name: {type: new GraphQLNonNull(GraphQLString)},
+				age: {type: new GraphQLNonNull(GraphQLInt)}
 			},
 			resolve(parent, args){
-				// console.log(args);
-				author.push({...args});
 				const newAuthor = new Author({
 					name: args.name,
 					age: args.age
 				});
-				console.log(newAuthor);
 				return newAuthor.save();
-				return author[author.length -1];
+			}
+		},
+		addBook: {
+			type: BookType,
+			args: {
+				name: {type: new GraphQLNonNull(GraphQLString)},
+				authorId: {type: new GraphQLNonNull(GraphQLID)},
+				published: {type: GraphQLBoolean}
+			},
+			resolve(parent, args){
+				const newBook = new Book({
+					name: args.name,
+					authorId: args.authorId,
+					published: args.published
+				});
+				return newBook.save();
+
 			}
 		}
 	}

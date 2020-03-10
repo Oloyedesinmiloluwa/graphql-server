@@ -2,12 +2,13 @@ import express from 'express';
 import graphqlHTTP from 'express-graphql';
 import mongoose from 'mongoose';
 import {schema} from './schema/schema';
-
+import cors from 'cors';
 const app = express();
 mongoose.connect('mongodb://test:password@localhost/test');
 mongoose.connection.once('open', () => {
 	console.log("Connected to Database");
 });
+app.use(cors());
 app.use('/graphql', graphqlHTTP({
 	schema,
 	graphiql: true
